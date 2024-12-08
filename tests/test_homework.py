@@ -1,113 +1,32 @@
-#taller 14
-#Se crea en homework el archivo country_scientific_production.py
-
-"""Taller Presencial Evaluable"""
+"""Autograding script."""
 
 import os
 
-import folium  # type: ignore
 import pandas as pd  # type: ignore
 
-
-def load_affiliations():
-    """Carga el archivo scopus-papers.csv y retorna un dataframe con la
-    columna 'Affiliations'"""
-
-    dataframe = pd.read_csv(
-        (
-            "https://raw.githubusercontent.com/jdvelasq/datalabs/"
-            "master/datasets/scopus-papers.csv"
-        ),
-        sep=",",
-        index_col=None,
-    )[["Affiliations"]]
-    return dataframe
+from _solution.country_scientific_production import make_worldmap
 
 
-def remove_na_rows(affiliations):
-    """Elimina las filas con valores nulos en la columna 'Affiliations'"""
+def test_01():
+    """Test country_scientific_production.py."""
 
-    affiliations = affiliations.copy()
-    affiliations = affiliations.dropna(subset=["Affiliations"])
-
-    return affiliations
-
-
-def add_countries_column(affiliations):
-    """Transforma la columna 'Affiliations' a una lista de paises."""
-
-    affiliations = affiliations.copy()
-    affiliations["countries"] = affiliations["Affiliations"].copy()
-    affiliations["countries"] = affiliations["countries"].str.split(";")
-    affiliations["countries"] = affiliations["countries"].map(
-        lambda x: [y.split(",") for y in x]
-    )
-    affiliations["countries"] = affiliations["countries"].map(
-        lambda x: [y[-1].strip() for y in x]
-    )
-    affiliations["countries"] = affiliations["countries"].map(set)
-    affiliations["countries"] = affiliations["countries"].str.join(", ")
-
-    return affiliations
-
-
-def clean_countries(affiliations):
-
-    affiliations = affiliations.copy()
-    affiliations["countries"] = affiliations["countries"].str.replace(
-        "United States", "United States of America"
-    )
-    return affiliations
-
-
-def count_country_frequency(affiliations):
-    """Cuenta la frecuencia de cada país en la columna 'countries'"""
-
-    countries = affiliations["countries"].copy()
-    countries = countries.str.split(", ")
-    countries = countries.explode()
-    countries = countries.value_counts()
-    return countries
-
-
-def plot_world_map(countries):
-    """Grafica un mapa mundial con la frecuencia de cada país."""
-
-    countries = countries.copy()
-    countries = countries.to_frame()
-    countries = countries.reset_index()
-
-    m = folium.Map(location=[0, 0], zoom_start=2)
-
-    folium.Choropleth(
-        geo_data=(
-            "https://raw.githubusercontent.com/python-visualization/"
-            "folium/master/examples/data/world-countries.json"
-        ),
-        data=countries,
-        columns=["countries", "count"],
-        key_on="feature.properties.name",
-        fill_color="Greens",
-    ).add_to(m)
-
-    m.save("files/map.html")
-
-
-def make_worldmap():
-    """Función principal"""
-
-    if not os.path.exists("files"):
-        os.makedirs("files")
-
-    affiliations = load_affiliations()
-    affiliations = remove_na_rows(affiliations)
-    affiliations = add_countries_column(affiliations)
-    affiliations = clean_countries(affiliations)
-    countries = count_country_frequency(affiliations)
-    countries.to_csv("files/countries.csv")
-    plot_world_map(countries)
-
-
-
-if __name__ == "__main__":
     make_worldmap()
+
+    #
+    # Retorna error si la carpeta files/ no existe
+    if not os.path.exists("files/countries.csv"):
+        raise FileNotFoundError("File 'files/countries.csv' not found")
+
+    #
+    # Lee el contenido del archivo output.txt
+    dataframe = pd.read_csv("files/countries.csv")
+    dataframe = dataframe.set_index("countries")
+
+    assert dataframe["count"]["United States of America"] == 579
+    assert dataframe["count"]["China"] == 273
+    assert dataframe["count"]["India"] == 174
+    assert dataframe["count"]["United Kingdom"] == 173
+    assert dataframe["count"]["Italy"] == 112
+
+    if not os.path.exists("files/map.html"):
+        raise FileNotFoundError("File 'files/map.html' not found")
