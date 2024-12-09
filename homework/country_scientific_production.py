@@ -32,7 +32,6 @@ def remove_na_rows(affiliations):
 
     return affiliations
 
-
 def add_countries_column(affiliations):
     """Transforma la columna 'Affiliations' a una lista de paises."""
 
